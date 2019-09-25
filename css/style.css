@@ -1,0 +1,34 @@
+html, body{
+  padding: 0;
+  margin: 0;
+  height: 100%;
+  width: 100%;
+  font-family: 'Avenir Light', Verdana, Geneva, sans-serif;
+}
+
+#banner {
+  height: 35px;
+  line-height: 35px;
+  padding: 5px 10px;
+  background-color: #5a6675;
+  color: white;
+}
+
+#viewDiv {
+  height: calc(100% - 45px);
+}
+
+.logo {
+  float: left;
+  height: inherit;
+}
+
+.logo img {
+  height: inherit;
+}
+
+.bannerText {
+  font-size: 20px;
+  text-align: center;
+  margin-left: 10px;
+}
