@@ -92,7 +92,6 @@ require([
   const testingLayer = new FeatureLayer({
     url: "https://services1.arcgis.com/a7CWfuGP5ZnLYE7I/ArcGIS/rest/services/WellTestingArea_20190607/FeatureServer/0"
   });
-
   searchWidget.on('select-result', function(evt){
     const query = testingLayer.createQuery()
     query.geometry = evt.result.feature.geometry;
@@ -110,8 +109,8 @@ require([
     });
   });
 
+  // close popups, remove address graphic, and go to default extent
   searchWidget.on('search-clear', (e) => {
-    // close popups, remove address graphic, and go to default extent
     view.popup.close();
     view.graphics.removeAll();
     view.goTo(defaultExtent);
