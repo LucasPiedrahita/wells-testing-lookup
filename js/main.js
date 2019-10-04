@@ -1,4 +1,3 @@
-let view;
 require([
   "esri/WebMap",
   "esri/views/MapView",
@@ -13,7 +12,9 @@ require([
   "esri/geometry/Point",
   "esri/geometry/SpatialReference",
   "dojo/domReady!"
-], function(WebMap, MapView, Search, Locator, Home, Locate, Extent, ScaleBar, Query, FeatureLayer, Point, SpatialReference) {
+], function(WebMap, MapView, Search, Locator, Home, Locate,
+  Extent, ScaleBar, Query, FeatureLayer, Point, SpatialReference) {
+
   // ADD WebMap Reference //
   const map = new WebMap({
     portalItem: {
@@ -21,7 +22,6 @@ require([
     }
   });
 
-  // ADD WebMap View //
   const defaultExtent = new Extent({
     xmin: -8794761.045373779,
     ymin: 4232693.700054966,
@@ -31,34 +31,12 @@ require([
       wkid: 102100
     }
   });
-  view = new MapView({
+
+  // ADD WebMap View //
+  const view = new MapView({
     container: "viewDiv",
     map: map,
     extent: defaultExtent,
-  });
-
-  // ADD Search Widget //
-  const searchWidget = new Search({
-    view: view,
-    sources: [{
-      locator: new Locator({
-        url: "https://maps.wakegov.com/arcgis/rest/services/Geoprocessing/Composite_Address_Locator/GeocodeServer/"
-      }),
-      name: "Wake County Addresses",
-      autoNavigate: true,
-      singleLineFieldName: "SingleLine",
-      maxSuggestions: 3,
-      popupEnabled: false,
-      minSuggestCharacters: 4,
-      maxResults: 1,
-      zoomScale: 3000,
-      placeholder: "Search your address"
-    }],
-    includeDefaultSources: false, //don't include Esri World geocoding service
-  });
-  view.ui.add(searchWidget, {
-    position: "top-left",
-    index: 0
   });
 
   // ADD Default Extent Button //
@@ -67,16 +45,10 @@ require([
   });
   view.ui.add(homeWidget, {
     position: "top-left",
-    index: 2
+    index: 1
   });
-
-  // ADD My Location Button //
-  const locateWidget = new Locate({
-    view: view,
-  });
-  view.ui.add(locateWidget, {
-    position: "top-left",
-    index: 3
+  homeWidget.on("go", homeWidgetClickEvent => {
+    resetView();
   });
 
   // ADD Scale Bar //
@@ -88,32 +60,85 @@ require([
     index: 0
   });
 
-  // ADD popup functionality on search //
-  const testingLayer = new FeatureLayer({
-    url: "https://services1.arcgis.com/a7CWfuGP5ZnLYE7I/ArcGIS/rest/services/WellTestingArea_20190607/FeatureServer/0"
+  // ADD Search Widget and its popup functionality//
+  const searchWidget = new Search({
+    view: view,
+    sources: [{
+      locator: new Locator({
+        url: "https://maps.wakegov.com/arcgis/rest/services/Geoprocessing/Composite_Address_Locator/GeocodeServer/"
+      }),
+      name: "Wake County Addresses",
+      autoNavigate: true,
+      singleLineFieldName: "SingleLine",
+      minSuggestCharacters: 4,
+      maxSuggestions: 3,
+      maxResults: 1,
+      popupEnabled: false,
+      zoomScale: 3000,
+      placeholder: "Search your address"
+    }],
+    includeDefaultSources: false, //don't include Esri World geocoding service
   });
-  searchWidget.on('select-result', function(evt){
-    const query = testingLayer.createQuery()
-    query.geometry = evt.result.feature.geometry;
-    query.distance = 1;
-    query.unit = "feet";
-    query.spatialRelationship = "intersects";
+  view.ui.add(searchWidget, {
+    position: "top-left",
+    index: 0
+  });
+  searchWidget.on("select-result", selectResultEvent => {
+    openTestingLayerPopup(selectResultEvent.result.feature.geometry);
+  });
+  searchWidget.on("search-clear", (searchClearEvent) => {
+    resetView();
+  });
 
-    testingLayer.queryFeatures(query).then(function(results){
-      const popupText = "<p style='font-size:18px; line-height:24px;'>" + results.features[0].attributes.TEXT + "</p>";
+  // ADD My Location Button and its popup functionality//
+  const locateWidget = new Locate({
+    view: view,
+  });
+  view.ui.add(locateWidget, {
+    position: "top-left",
+    index: 3
+  });
+  locateWidget.on("locate", locateEvent => {
+    const locateEventPoint = {
+      type: "point",
+      longitude: locateEvent.position.coords.longitude,
+      latitude: locateEvent.position.coords.latitude
+    };
+    openTestingLayerPopup(locateEventPoint);
+  });
+
+  // function definitions //
+  function openTestingLayerPopup(inputGeometry) {
+    // Close existing popups, query wells testing feature layer,
+    // and open resulting popup for a input point. Also add a watch
+    // to the popup so that resetView() runs when the popup is closed
+    view.popup.close();
+
+    const testingLayer = new FeatureLayer({
+      url: "https://services1.arcgis.com/a7CWfuGP5ZnLYE7I/ArcGIS/rest/services/WellTestingArea_20190607/FeatureServer/0"
+    });
+    const testingLayerQuery = testingLayer.createQuery()
+    testingLayerQuery.geometry = inputGeometry;
+    testingLayerQuery.distance = 1;
+    testingLayerQuery.unit = "feet";
+    testingLayerQuery.spatialRelationship = "intersects";
+
+    testingLayer.queryFeatures(testingLayerQuery)
+    .then(function(queryResults){
+      const popupTextFromFeature = queryResults.features[0].attributes.TEXT;
+      const popupText = "<p style='font-size:18px; line-height:24px;'>" + popupTextFromFeature + "</p>";
       view.popup.open({
-        content: "" + popupText,
-        location: evt.result.feature.geometry,
+        content: popupText,
+        location: inputGeometry,
         actions: null
       });
     });
-  });
+  };
 
-  // close popups, remove address graphic, and go to default extent
-  searchWidget.on('search-clear', (e) => {
+  function resetView() {
+    // close popups, remove graphics, and go to default extent
     view.popup.close();
     view.graphics.removeAll();
     view.goTo(defaultExtent);
-  });
-
+  };
 });
