@@ -1,6 +1,4 @@
 # wells-testing-lookup
-Wake County Wells testing lookup app rewritten from 3.x to 4.x ArcGIS JavaScript API.
-
 See the live app at https://lucaspiedrahita.github.io/wells-testing-lookup/
 
 This is a web mapping application Wake County residents can use to look up whether or not their home falls within the area that the County recommends well water quality testing.
